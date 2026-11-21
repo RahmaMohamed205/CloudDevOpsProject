@@ -1,0 +1,19 @@
+# Convenience kustomization so the whole stack can be applied with
+# `kubectl apply -k Kubernetes/` (ArgoCD does not need it - it points at this
+# directory directly).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - storageclass.yaml
+  - database/service-headless.yaml
+  - database/statefulset.yaml
+  - frontend/deployment.yaml
+  - frontend/service.yaml
+  - auth-service/deployment.yaml
+  - auth-service/service.yaml
+  - roadmap-service/deployment.yaml
+  - roadmap-service/service.yaml
+  - ingress.yaml

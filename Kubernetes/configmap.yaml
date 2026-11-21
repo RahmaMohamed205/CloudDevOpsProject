@@ -1,0 +1,17 @@
+# Non-sensitive environment variables shared by the microservices.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: ivolve
+  labels:
+    app.kubernetes.io/part-of: ivolve
+data:
+  # Database (non-sensitive parts; credentials live in the db-secret Secret)
+  DB_HOST: mysql
+  DB_PORT: "3306"
+  DB_NAME: ivolve
+
+  # Service-to-service URLs used by the frontend
+  AUTH_SERVICE_URL: http://auth-service:5000
+  ROADMAP_SERVICE_URL: http://roadmap-service:8080

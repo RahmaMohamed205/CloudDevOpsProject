@@ -1,0 +1,130 @@
+# =============================================================================
+# iVolve Cloud DevOps Final Project - Local Docker Compose stack
+#
+# Builds and runs the full application (frontend, auth-service,
+# roadmap-service) together with its MySQL database locally.
+#
+# Usage (from this directory):
+#   docker compose up --build                 # run the application
+#   docker compose --profile test up --build  # run the application + test container
+#
+# The application UI is exposed on http://localhost:3000
+# =============================================================================
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: ivolve-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ivolve
+      MYSQL_USER: ivolve_user
+      MYSQL_PASSWORD: ivolve_password
+      MYSQL_ROOT_PASSWORD: example_root_password
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      # CMD-SHELL so the shell expands $$MYSQL_ROOT_PASSWORD (escaped for compose)
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - ivolve-network
+
+  auth-service:
+    build:
+      context: ../App/auth-service
+    container_name: ivolve-auth-service
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: ivolve
+      DB_USER: ivolve_user
+      DB_PASSWORD: ivolve_password
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - ivolve-network
+
+  roadmap-service:
+    build:
+      context: ../App/roadmap-service
+    container_name: ivolve-roadmap-service
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - ivolve-network
+
+  frontend:
+    build:
+      context: ../App/frontend
+    container_name: ivolve-frontend
+    restart: unless-stopped
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:5000
+      ROADMAP_SERVICE_URL: http://roadmap-service:8080
+      SESSION_SECRET: example_session_secret_change_me
+    ports:
+      - "3000:3000"
+    depends_on:
+      - auth-service
+      - roadmap-service
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - ivolve-network
+
+  # ---------------------------------------------------------------------------
+  # Test container: runs only with the "test" profile and verifies that the
+  # application and its database came up correctly end to end.
+  #   docker compose --profile test up --build --abort-on-container-exit
+  # ---------------------------------------------------------------------------
+  app-tests:
+    image: curlimages/curl:8.10.1
+    container_name: ivolve-app-tests
+    profiles: ["test"]
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - |
+        set -eu
+        echo "==> Testing auth-service database connectivity (/health)"
+        curl -fsS --retry 10 --retry-delay 3 --retry-all-errors http://auth-service:5000/health
+        echo
+        echo "==> Testing frontend page (/)"
+        curl -fsS --retry 10 --retry-delay 3 --retry-all-errors http://frontend:3000/ > /dev/null
+        echo "frontend OK"
+        echo "==> Testing roadmap-service API (/api/roadmap)"
+        curl -fsS --retry 15 --retry-delay 3 --retry-all-errors http://roadmap-service:8080/api/roadmap > /dev/null
+        echo "roadmap-service OK"
+        echo "==> ALL TESTS PASSED"
+    networks:
+      - ivolve-network
+
+volumes:
+  db_data:
+
+networks:
+  ivolve-network:
+    driver: bridge

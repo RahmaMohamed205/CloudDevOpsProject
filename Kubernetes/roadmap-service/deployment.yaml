@@ -1,0 +1,46 @@
+# Roadmap Service (Java/Spring Boot) Deployment.
+# The image registry/tag is updated automatically by the Jenkins pipeline
+# ("Update Manifests" stage) and deployed by ArgoCD.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: roadmap-service
+  namespace: ivolve
+  labels:
+    app: roadmap-service
+    app.kubernetes.io/part-of: ivolve
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: roadmap-service
+  template:
+    metadata:
+      labels:
+        app: roadmap-service
+        app.kubernetes.io/part-of: ivolve
+    spec:
+      containers:
+        - name: roadmap-service
+          image: 000000000000.dkr.ecr.us-east-1.amazonaws.com/ivolve/roadmap-service:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 40
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi

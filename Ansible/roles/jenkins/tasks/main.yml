@@ -1,0 +1,70 @@
+---
+# Installs the Jenkins LTS server from the official Jenkins apt repository.
+
+- name: Install Jenkins repository prerequisites
+  ansible.builtin.apt:
+    name:
+      - curl
+      - gnupg2
+      - ca-certificates
+    state: present
+    update_cache: true
+
+- name: Add the Jenkins repository GPG key
+  ansible.builtin.get_url:
+    url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+    dest: /usr/share/keyrings/jenkins-keyring.asc
+    mode: "0644"
+
+- name: Add the Jenkins apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+    filename: jenkins
+    state: present
+
+- name: Install Jenkins
+  ansible.builtin.apt:
+    name: jenkins
+    state: present
+    update_cache: true
+
+- name: Enable and start Jenkins
+  ansible.builtin.systemd:
+    name: jenkins
+    enabled: true
+    state: started
+
+# The Jenkins pipelines use the AWS CLI to authenticate Docker against ECR.
+- name: Install AWS CLI prerequisites
+  ansible.builtin.apt:
+    name:
+      - unzip
+      - curl
+    state: present
+
+- name: Download the AWS CLI v2 installer
+  ansible.builtin.get_url:
+    url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+    dest: /tmp/awscliv2.zip
+    mode: "0644"
+
+- name: Extract the AWS CLI installer
+  ansible.builtin.unarchive:
+    src: /tmp/awscliv2.zip
+    dest: /tmp
+    remote_src: true
+
+- name: Install the AWS CLI
+  ansible.builtin.command:
+    cmd: /tmp/aws/install
+    creates: /usr/local/bin/aws
+
+- name: Wait for Jenkins to answer on port 8080
+  ansible.builtin.wait_for:
+    port: 8080
+    delay: 10
+    timeout: 300
+
+- name: Print the initial admin password path
+  ansible.builtin.debug:
+    msg: "Retrieve the initial Jenkins admin password with: sudo cat /var/lib/jenkins/secrets/initialAdminPassword"

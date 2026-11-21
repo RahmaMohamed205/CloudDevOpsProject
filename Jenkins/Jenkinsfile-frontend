@@ -1,0 +1,87 @@
+// =============================================================================
+// CI pipeline for the frontend microservice.
+//
+// Uses the "ivolve-shared-library" Jenkins shared library (the vars/
+// directory at the root of this repository - see the README for how to
+// register it in Manage Jenkins > System > Global Trusted Pipeline Libraries).
+//
+// Required Jenkins credentials:
+//   aws-credentials    - username/password: AWS access key ID / secret access key
+//   github-credentials - username/password: GitHub username / personal access token
+// =============================================================================
+@Library('ivolve-shared-library') _
+
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION      = 'us-east-1'
+        // Replace 000000000000 with your AWS account ID (see `terraform output ecr_repository_urls`).
+        ECR_REGISTRY    = '000000000000.dkr.ecr.us-east-1.amazonaws.com'
+        SERVICE_NAME    = 'frontend'
+        IMAGE_NAME      = 'ivolve/frontend'
+        BUILD_CONTEXT   = 'App/frontend'
+        DEPLOYMENT_FILE = 'Kubernetes/frontend/deployment.yaml'
+        AWS_CREDENTIALS = 'aws-credentials'
+        GIT_CREDENTIALS = 'github-credentials'
+        REPO_OWNER      = 'YOUR_GITHUB_USERNAME'
+        REPO_NAME       = 'CloudDevOpsProject'
+        REPO_BRANCH     = 'main'
+    }
+
+    stages {
+        stage('Build Image') {
+            steps {
+                script {
+                    buildImage(imageName: env.IMAGE_NAME, imageTag: env.BUILD_NUMBER, context: env.BUILD_CONTEXT)
+                }
+            }
+        }
+
+        stage('Scan Image') {
+            steps {
+                script {
+                    scanImage(imageName: env.IMAGE_NAME, imageTag: env.BUILD_NUMBER)
+                }
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                script {
+                    pushImage(imageName: env.IMAGE_NAME, imageTag: env.BUILD_NUMBER,
+                              registry: env.ECR_REGISTRY, region: env.AWS_REGION,
+                              awsCredentialsId: env.AWS_CREDENTIALS)
+                }
+            }
+        }
+
+        stage('Delete Image Locally') {
+            steps {
+                script {
+                    deleteImage(imageName: env.IMAGE_NAME, imageTag: env.BUILD_NUMBER, registry: env.ECR_REGISTRY)
+                }
+            }
+        }
+
+        stage('Update Manifests') {
+            steps {
+                script {
+                    updateManifests(deploymentFile: env.DEPLOYMENT_FILE, imageName: env.IMAGE_NAME,
+                                    imageTag: env.BUILD_NUMBER, registry: env.ECR_REGISTRY)
+                }
+            }
+        }
+
+        stage('Push Manifests') {
+            steps {
+                script {
+                    pushManifests(deploymentFile: env.DEPLOYMENT_FILE, serviceName: env.SERVICE_NAME,
+                                  imageTag: env.BUILD_NUMBER, branch: env.REPO_BRANCH,
+                                  repoOwner: env.REPO_OWNER, repoName: env.REPO_NAME,
+                                  gitCredentialsId: env.GIT_CREDENTIALS)
+                }
+            }
+        }
+    }
+}

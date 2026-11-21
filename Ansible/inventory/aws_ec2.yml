@@ -1,0 +1,33 @@
+# =============================================================================
+# Dynamic inventory for AWS EC2 (amazon.aws.aws_ec2 plugin).
+#
+# Discovers the running Jenkins server(s) created by the Terraform server
+# module (tagged Name=jenkins-server, Role=jenkins) and groups them under
+# "jenkins_servers".
+#
+# Prerequisites:
+#   ansible-galaxy collection install -r requirements.yml
+#   export AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY (or an AWS profile)
+#
+# Verify with:
+#   ansible-inventory --graph
+# =============================================================================
+
+plugin: amazon.aws.aws_ec2
+
+regions:
+  - us-east-1
+
+filters:
+  tag:Name: jenkins-server
+  instance-state-name: running
+
+keyed_groups:
+  # Creates the group "jenkins_servers" from the Role=jenkins tag.
+  - key: tags.Role
+    prefix: ""
+    separator: ""
+    suffix: "_servers"
+
+compose:
+  ansible_host: public_ip_address

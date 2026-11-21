@@ -1,0 +1,30 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# AWS / credentials
+*.pem
+*.key
+.env
+
+# Ansible
+*.retry
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# Java
+target/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

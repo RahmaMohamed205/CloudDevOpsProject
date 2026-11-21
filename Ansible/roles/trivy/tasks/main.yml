@@ -1,0 +1,40 @@
+---
+# Installs Trivy from the official Aqua Security apt repository.
+# Trivy is used by the Jenkins pipelines to scan images before pushing them
+# to ECR.
+
+- name: Install Trivy repository prerequisites
+  ansible.builtin.apt:
+    name:
+      - wget
+      - gnupg
+      - apt-transport-https
+    state: present
+    update_cache: true
+
+- name: Add the Trivy repository GPG key
+  ansible.builtin.get_url:
+    url: https://aquasecurity.github.io/trivy-repo/deb/public.key
+    dest: /usr/share/keyrings/trivy.asc
+    mode: "0644"
+
+- name: Add the Trivy apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/trivy.asc] https://aquasecurity.github.io/trivy-repo/deb {{ ansible_distribution_release }} main"
+    filename: trivy
+    state: present
+
+- name: Install Trivy
+  ansible.builtin.apt:
+    name: trivy
+    state: present
+    update_cache: true
+
+- name: Show installed Trivy version
+  ansible.builtin.command: trivy --version
+  register: trivy_version
+  changed_when: false
+
+- name: Print Trivy version
+  ansible.builtin.debug:
+    var: trivy_version.stdout_lines

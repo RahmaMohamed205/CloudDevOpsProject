@@ -1,0 +1,32 @@
+# ArgoCD Application: syncs the Kubernetes manifests in this repository into
+# the EKS cluster. Whenever Jenkins pushes an updated image tag to the
+# Kubernetes/ directory, ArgoCD automatically deploys it.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ivolve-app
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: ivolve
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    # Replace YOUR_GITHUB_USERNAME with the GitHub user/organization that owns
+    # the CloudDevOpsProject repository.
+    repoURL: https://github.com/YOUR_GITHUB_USERNAME/CloudDevOpsProject.git
+    targetRevision: main
+    path: Kubernetes
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ivolve
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

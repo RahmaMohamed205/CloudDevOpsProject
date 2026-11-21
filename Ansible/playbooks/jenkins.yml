@@ -1,0 +1,22 @@
+---
+# =============================================================================
+# Configures the Jenkins EC2 instance(s) discovered by the dynamic inventory:
+#   1. java    - installs OpenJDK 17 (required by Jenkins)
+#   2. jenkins - installs and starts the Jenkins LTS server
+#   3. docker  - installs Docker Engine (used by the CI pipelines)
+#   4. trivy   - installs Trivy (image vulnerability scanning in the pipelines)
+#
+# Run with:
+#   ansible-playbook playbooks/jenkins.yml --private-key ~/.ssh/ivolve-jenkins-key.pem
+# =============================================================================
+
+- name: Configure Jenkins server
+  hosts: jenkins_servers
+  become: true
+  gather_facts: true
+
+  roles:
+    - java
+    - jenkins
+    - docker
+    - trivy
