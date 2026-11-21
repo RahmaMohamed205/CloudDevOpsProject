@@ -1,5 +1,18 @@
 # iVolve Cloud DevOps Final Project
 
+## Acknowledgment
+
+**In Collaboration with iVolve Technologies**
+
+This project represents the culmination of the DevOps training at the National
+Telecommunication Institute (NTI), in partnership with iVolve Technologies.
+
+<p>
+  <img src="assets/1-nti-logo.jpg" alt="National Telecommunication Institute (NTI)" width="160" />
+  &nbsp;&nbsp;
+  <img src="assets/2-ivolve-logo.jpg" alt="iVolve Technologies" width="220" />
+</p>
+
 End-to-end DevOps implementation for a microservices web application: local
 containerization with Docker Compose, AWS infrastructure provisioning with
 Terraform, configuration management with Ansible, container orchestration on
@@ -8,7 +21,7 @@ GitOps continuous deployment with ArgoCD.
 
 The application source code is based on the public
 [Ibrahim-Adel15/iVolveFinalProject](https://github.com/Ibrahim-Adel15/iVolveFinalProject)
-repository (copied into [`App/`](App/) as required by the assignment).
+repository.
 
 ---
 
